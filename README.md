@@ -1,6 +1,8 @@
 node-red-contrib-web-worldmap
 =============================
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/dceejay/RedMap.svg)](https://greenkeeper.io/)
+
 A <a href="http://nodered.org" target="_new">Node-RED</a> node to provide world
 map web page for plotting "things" on.
 
