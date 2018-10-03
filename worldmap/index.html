@@ -263,7 +263,7 @@ if (!inIframe) {
         heat.setLatLngs([]);
     }, "Clears the current heatmap", "bottomright");
 }
-else { if (showUserMenu) { menuButton.addTo(map); } }
+if (showUserMenu) { menuButton.addTo(map); } // Always, else TypeError: this._container is undefined at line 1219
 
 // Handle the dialog for popup help
 var dialog = document.querySelector('dialog');

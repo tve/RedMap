@@ -19,14 +19,17 @@ module.exports = function(RED) {
     var path = require("path");
     var express = require("express");
     var sockjs = require('sockjs');
-    var socket;
+    var sockets = {}; // indexed by worldmap name
 
     var WorldMap = function(n) {
         RED.nodes.createNode(this,n);
-        if (!socket) {
-            var fullPath = path.posix.join(RED.settings.httpNodeRoot, 'worldmap', 'leaflet', 'sockjs.min.js');
-            socket = sockjs.createServer({sockjs_url:fullPath, log:function() {}, transports:"xhr-polling"});
-            socket.installHandlers(RED.server, {prefix:path.posix.join(RED.settings.httpNodeRoot,'/worldmap/socket')});
+        var uri = n.nameuri && n.name ? "worldmaps/"+n.name : "worldmap";
+        if (!sockets[n.name]) {
+            var fullPath = path.posix.join(RED.settings.httpNodeRoot, uri, 'leaflet', 'sockjs.min.js');
+            this.log("Creating worldmap socket, name="+n.name+" nameuri="+n.nameuri+" uri="+uri+
+                " fullPath="+fullPath);
+            sockets[n.name] = sockjs.createServer({sockjs_url:fullPath, log:function() {}, transports:"xhr-polling"});
+            sockets[n.name].installHandlers(RED.server, {prefix:path.posix.join(RED.settings.httpNodeRoot,'/'+uri+'/socket')});
         }
         this.lat = n.lat || "";
         this.lon = n.lon || "";
@@ -37,11 +40,14 @@ module.exports = function(RED) {
         this.showmenu = n.usermenu || "show";
         this.panit = n.panit || "false";
         this.layers = n.layers || "show";
+        this.name = n.name;
+        this.nameuri = !!n.nameuri;
         var node = this;
         var clients = {};
         //node.log("Serving map from "+__dirname+" as "+RED.settings.httpNodeRoot.slice(0,-1)+"/worldmap");
-        RED.httpNode.use("/worldmap", express.static(__dirname + '/worldmap'));
+        RED.httpNode.use("/"+uri, express.static(__dirname + '/worldmap'));
         // add the cgi module for serving local maps....
+        // FIXME: should only do this the first time
         RED.httpNode.use("/cgi-bin/mapserv", require('cgi')(__dirname + '/mapserv'));
 
         var callback = function(client) {
@@ -89,20 +95,21 @@ module.exports = function(RED) {
                     clients[c].end();
                 }
             }
-            socket.removeListener('connection', callback);
+            sockets[node.name].removeListener('connection', callback);
             node.status({});
         });
-        socket.on('connection', callback);
+        sockets[node.name].on('connection', callback);
     }
     RED.nodes.registerType("worldmap",WorldMap);
 
 
     var WorldMapIn = function(n) {
         RED.nodes.createNode(this,n);
-        if (!socket) {
+        if (!sockets[n.name]) {
+            // FIXME: need to let worldmap node figure out socket name!
             var fullPath = path.posix.join(RED.settings.httpNodeRoot, 'worldmap', 'leaflet', 'sockjs.min.js');
-            socket = sockjs.createServer({sockjs_url:fullPath, prefix:path.posix.join(RED.settings.httpNodeRoot,'/worldmap/socket')});
-            socket.installHandlers(RED.server);
+            sockets[n.name] = sockjs.createServer({sockjs_url:fullPath, prefix:path.posix.join(RED.settings.httpNodeRoot,'/worldmap/socket')});
+            sockets[n.name].installHandlers(RED.server);
         }
         var node = this;
         var clients = {};
@@ -128,10 +135,10 @@ module.exports = function(RED) {
                     clients[c].end();
                 }
             }
-            socket.removeListener('connection', callback);
+            sockets[n.name].removeListener('connection', callback);
             node.status({});
         });
-        socket.on('connection', callback);
+        sockets[n.name].on('connection', callback);
     }
     RED.nodes.registerType("worldmap in",WorldMapIn);
 
