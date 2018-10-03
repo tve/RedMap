@@ -20,6 +20,7 @@ module.exports = function(RED) {
     var express = require("express");
     var sockjs = require('sockjs');
     var sockets = {}; // indexed by worldmap name
+    var socketCB = {}; // callbacks into worldmap-in nodes
 
     var WorldMap = function(n) {
         RED.nodes.createNode(this,n);
@@ -30,6 +31,7 @@ module.exports = function(RED) {
                 " fullPath="+fullPath);
             sockets[n.name] = sockjs.createServer({sockjs_url:fullPath, log:function() {}, transports:"xhr-polling"});
             sockets[n.name].installHandlers(RED.server, {prefix:path.posix.join(RED.settings.httpNodeRoot,'/'+uri+'/socket')});
+            if (socketCB[n.name]) socketCB[n.name]();
         }
         this.lat = n.lat || "";
         this.lon = n.lon || "";
@@ -106,12 +108,7 @@ module.exports = function(RED) {
 
     var WorldMapIn = function(n) {
         RED.nodes.createNode(this,n);
-        if (!sockets[n.name]) {
-            // FIXME: need to let worldmap node figure out socket name!
-            var fullPath = path.posix.join(RED.settings.httpNodeRoot, 'worldmap', 'leaflet', 'sockjs.min.js');
-            sockets[n.name] = sockjs.createServer({sockjs_url:fullPath, prefix:path.posix.join(RED.settings.httpNodeRoot,'/worldmap/socket')});
-            sockets[n.name].installHandlers(RED.server);
-        }
+
         var node = this;
         var clients = {};
 
@@ -130,16 +127,29 @@ module.exports = function(RED) {
             });
         }
 
+        // callback used if this node is instantiated before the corresponding worldmap node and
+        // thus the socket has not yet been created.
+        var socketConn = function() {
+            if (!sockets[n.name]) return; // should never happen
+            delete(socketCB, n.name);
+            sockets[n.name].on('connection', callback);
+        };
+        if (sockets[n.name]) {
+            sockets[n.name].on('connection', callback);
+        } else {
+            socketCB[n.name] = socketConn;
+        }
+
         node.on("close", function() {
             for (var c in clients) {
                 if (clients.hasOwnProperty(c)) {
                     clients[c].end();
                 }
             }
-            sockets[n.name].removeListener('connection', callback);
+            if (sockets[n.name]) sockets[n.name].removeListener('connection', callback);
+            if (socketsCB[n.name]) delete(socketCB, n.name);
             node.status({});
         });
-        sockets[n.name].on('connection', callback);
     }
     RED.nodes.registerType("worldmap in",WorldMapIn);
 

@@ -86,7 +86,11 @@
 
 <script type="text/x-red" data-help-name="worldmap">
     <p>Plots "things" on a web map. Needs an internet connection.</p>
-    <p>Shortcut - <code>⌘⇧m</code> - ctrl-shift-m to jump to Map.</p>
+    <p>It is possible to instantiate multiple worldmap nodes but each one must be given a unique
+        name. Worldmap-in nodes are matched to worldmap nodes by having exactly the same name.
+        If the name is left empty, the URL for the map is <tt>/worldmap</tt>, otherwise it is
+        <tt>/worldmaps/{{name}}</tt> (note "worldmap" vs "worldmaps").
+    <p>Shortcut - <code>⌘⇧m</code> - ctrl-shift-m to jump to the default Map (<tt>/worldmap</tt>).</p>
     <p>The minimum <code>msg.payload</code> must contain <code>name</code>, <code>lat</code> and <code>lon</code> properties, e.g.</p>
     <pre>{name:"Joe", lat:51, lon:-1.05}</pre>
     <p><code>name</code> must be a unique identifier.</p>
