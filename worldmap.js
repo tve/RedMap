@@ -66,6 +66,7 @@ module.exports = function(RED) {
                     c.showmenu = node.showmenu;
                     c.panit = node.panit;
                     c.showlayers = node.layers;
+                    node.log("Client connect, sending: " + JSON.stringify({command:c}));
                     client.write(JSON.stringify({command:c}));
                 }
             });

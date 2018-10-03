@@ -335,15 +335,16 @@ function doTidyUp(l) {
     }
 }
 
+/* TvE hack
 // move the daylight / nighttime boundary (if enabled) every minute
 function moveTerminator() { // if terminator line plotted move it every minute
-    return;
     if (layers["_daynight"].getLayers().length > 0) {
         layers["_daynight"].clearLayers();
         layers["_daynight"].addLayer(L.terminator());
     }
 }
 setInterval( function() {moveTerminator()}, 60000 );
+*/
 
 // Call tidyup every {maxage} seconds - default 10 mins
 var stale = null;
