@@ -13,8 +13,9 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
--->
 <html manifest="worldmap.appcache">
+-->
+<html>
 <head>
     <title>Node-RED map all the things</title>
     <meta name="mobile-web-app-capable" content="yes">
@@ -121,7 +122,7 @@ var menuOpen = false;
 var clusterAt = 13;
 var maxage = 600;   // default max age of icons on map in seconds - cleared after 10 mins
 var baselayername = "OSM grey";     // Default base layer OSM but uniform grey
-var ibmfoot = "&nbsp;&copy; IBM 2015,2018"
+var ibmfoot = "&nbsp;&copy; IBM 2015,2018; TvE 2018"
 var initialposition = false;
 var inIframe = false;
 var showUserMenu = true;
@@ -336,6 +337,7 @@ function doTidyUp(l) {
 
 // move the daylight / nighttime boundary (if enabled) every minute
 function moveTerminator() { // if terminator line plotted move it every minute
+    return;
     if (layers["_daynight"].getLayers().length > 0) {
         layers["_daynight"].clearLayers();
         layers["_daynight"].addLayer(L.terminator());
@@ -571,6 +573,7 @@ basemaps["OSM grey"] = osmg;
 var osm = new L.TileLayer(osmUrl, {attribution:osmAttrib, maxNativeZoom:19, maxZoom:20});
 basemaps["OSM"] = osm;
 
+/*
 // Extra Leaflet map layers from https://leaflet-extras.github.io/leaflet-providers/preview/
 var Esri_WorldStreetMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri', maxNativeZoom:19, maxZoom:20
@@ -587,6 +590,7 @@ var Esri_WorldShadedRelief = L.tileLayer('https://server.arcgisonline.com/ArcGIS
     maxNativeZoom:13
 });
 basemaps["Esri Terrain"] = Esri_WorldShadedRelief;
+*/
 
 var Esri_OceanBasemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Ocean_Basemap/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri',
@@ -609,6 +613,7 @@ basemaps["Esri Ocean"] = Esri_OceanBasemap;
 // });
 //basemaps["MapQuest OSM"] = MapQuestOpen_OSM;
 
+/*
 var Esri_NatGeoWorldMap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/NatGeo_World_Map/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri',
     maxNativeZoom:12
@@ -646,6 +651,7 @@ var NLS_OS_1900 = L.tileLayer('https://nls-{s}.tileserver.com/fpsUZbzrfb5d/{z}/{
     subdomains: '0123'
 });
 basemaps["UK OS 1900"] = NLS_OS_1900;
+*/
 
 //var CartoPos = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
 //    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, &copy; <a href="https://cartodb.com/attributions">CartoDB</a>'
@@ -653,21 +659,21 @@ basemaps["UK OS 1900"] = NLS_OS_1900;
 //basemaps["CartoDB Light"] = CartoPos;
 
 // Terrain map by Stamen Design
-basemaps["Terrain"] = new L.StamenTileLayer('terrain');
+//basemaps["Terrain"] = new L.StamenTileLayer('terrain');
 
 // Nice watercolour based maps by Stamen Design
-basemaps["Watercolor"] = new L.StamenTileLayer('watercolor');
+//basemaps["Watercolor"] = new L.StamenTileLayer('watercolor');
 
 // Now add the overlays
 
 // Add the day/night overlay
-layers["_daynight"] = new L.LayerGroup();
-overlays["day/night"] = layers["_daynight"];
+//layers["_daynight"] = new L.LayerGroup();
+//overlays["day/night"] = layers["_daynight"];
 
 // Add the heatmap layer
-var heat = L.heatLayer([], {radius:60, gradient:{0.2:'blue', 0.4:'lime', 0.6:'red', 0.8:'yellow', 1:'white'}});
-layers["_heat"] = new L.LayerGroup().addLayer(heat);
-overlays["heatmap"] = layers["_heat"];
+//var heat = L.heatLayer([], {radius:60, gradient:{0.2:'blue', 0.4:'lime', 0.6:'red', 0.8:'yellow', 1:'white'}});
+//layers["_heat"] = new L.LayerGroup().addLayer(heat);
+//overlays["heatmap"] = layers["_heat"];
 
 // Add the drawing layer for fun...
 layers["_drawing"] = new L.FeatureGroup();
@@ -697,8 +703,8 @@ map.on('draw:created', function (e) {
 });
 
 
-overlays["buildings"] = new OSMBuildings(map).load();
-map.removeLayer(overlays["buildings"]);     // Hide it at start
+//overlays["buildings"] = new OSMBuildings(map).load();
+//map.removeLayer(overlays["buildings"]);     // Hide it at start
 
 // Add Roads
 overlays["roads"] = L.tileLayer('https://{s}.tile.openstreetmap.se/hydda/roads_and_labels/{z}/{x}/{y}.png', {
@@ -1140,9 +1146,9 @@ function setMarker(data) {
                 rightmenuMarker.setLatLng(e.latlng);
                 map.openPopup(rightmenuMarker);
             });
-            if ((data.addtoheatmap !== "false") || (!data.hasOwnProperty("addtoheatmap"))) { // Added to give ability to control if points from active layer contribute to heatmap
-                if (heatAll || map.hasLayer(layers[lay])) { heat.addLatLng(lli); }
-            }
+            //if ((data.addtoheatmap !== "false") || (!data.hasOwnProperty("addtoheatmap"))) { // Added to give ability to control if points from active layer contribute to heatmap
+            //    if ((heatAll || map.hasLayer(layers[lay]))) { heat.addLatLng(lli); }
+            //}
             markers[data.name] = marker;
             layers[lay].addLayer(marker);
         }
