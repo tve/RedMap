@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  Copyright 2015, 2017 IBM Corp.
+  Copyright 2015, 2018 IBM Corp.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@
         <option value="Esri Satellite">ESRI Satellite</option>
         <option value="Esri Terrain">ESRI Terrain</option>
         <option value="Esri Ocean">ESRI Ocean</option>
-        <option value="Mapsurfer">Mapsurfer</option>
-        <option value="MapQuest OSM">MapQuest OSM</option>
         <option value="Nat Geo">National Geographic</option>
         <option value="UK OS Opendata">UK OS Opendata</option>
+        <option value="Hike Bike">Hike Bike OSM</option>
+        <option value="Terrain">Terrain</option>
     </select>
 </div>
 <div class="form-row">
@@ -69,9 +69,14 @@
     </select>
 </div>
 <div class="form-row">
+    <label for="node-input-path"><i class="fa fa-globe"></i> Web Path</label>
+    <input type="text" id="node-input-path" placeholder="worldmap">
+</div>
+<div class="form-row">
     <label for="node-input-name"><i class="fa fa-file"></i> Name</label>
     <input type="text" id="node-input-name" placeholder="name">
 </div>
+<<<<<<< HEAD
 <div class="form-row" style="margin-bottom:0px;">
     <label>&nbsp;</label>
     <input type="checkbox" id="node-input-nameuri"
@@ -82,14 +87,15 @@
 <div class="form-tips">Tip: If <i>Name in URL</i> is deselected,
     <code>⌘⇧m</code> - <code>ctrl-shift-m</code> will load the map in a new tab.
 </div>
+=======
+<div class="form-tips">Tip: If <i>Path</i> is left empty,
+then by default <code>⌘⇧m</code> - <code>ctrl-shift-m</code> will load the map in a new tab.</div>
 </script>
 
 <script type="text/x-red" data-help-name="worldmap">
     <p>Plots "things" on a web map. Needs an internet connection.</p>
     <p>It is possible to instantiate multiple worldmap nodes but each one must be given a unique
-        name. Worldmap-in nodes are matched to worldmap nodes by having exactly the same name.
-        If the name is left empty, the URL for the map is <tt>/worldmap</tt>, otherwise it is
-        <tt>/worldmaps/{{name}}</tt> (note "worldmap" vs "worldmaps").
+        path. Worldmap-in nodes are matched to worldmap nodes by having exactly the same path.
     <p>Shortcut - <code>⌘⇧m</code> - ctrl-shift-m to jump to the default Map (<tt>/worldmap</tt>).</p>
     <p>The minimum <code>msg.payload</code> must contain <code>name</code>, <code>lat</code> and <code>lon</code> properties, e.g.</p>
     <pre>{name:"Joe", lat:51, lon:-1.05}</pre>
@@ -121,8 +127,7 @@
 
 <script type="text/javascript">
     var lnk = document.location.host+RED.settings.httpNodeRoot+"/worldmap";
-    var re = new RegExp('\/{1,}','g');
-    lnk = lnk.replace(re,'/');
+    lnk = lnk.replace(new RegExp('\/{1,}','g'),'/');
     if (!RED.hasOwnProperty("actions")) {
         RED.keyboard.add("*",/* m */ 77,{ctrl:true, shift:true},function() { window.open(document.location.protocol+"//"+lnk) });
     }
@@ -144,7 +149,8 @@
             maxage: {value:""},
             usermenu: {value:"show"},
             layers: {value:"show"},
-            panit: {value:"false"}
+            panit: {value:"false"},
+            path: {value:"/worldmap"}
         },
         inputs:1,
         outputs:0,
@@ -157,16 +163,24 @@
             return this.name?"node_label_italic":"";
         },
         info: function() {
-            return 'The map can be found [here]('+RED.settings.httpNodeRoot.slice(0,-1)+'/worldmap).';
+            return 'The map can be found [here]('+RED.settings.httpNodeRoot.slice(0,-1)+this.path+').';
         },
         oneditprepare: function() {
-            $( "#node-input-zoom" ).spinner({min:0, max:18});
-            $( "#node-input-cluster" ).spinner({min:0, max:19});
+            if ($("#node-input-path").val() === undefined) {
+                $("#node-input-path").val("worldmap");
+                this.path = "worldmap";
+            }
+            $("#node-input-zoom").spinner({min:0, max:18});
+            $("#node-input-cluster").spinner({min:0, max:19});
         }
     });
 </script>
 
 <script type="text/x-red" data-template-name="worldmap in">
+    <div class="form-row">
+        <label for="node-input-path"><i class="fa fa-globe"></i> Web Path</label>
+        <input type="text" id="node-input-path" placeholder="worldmap">
+    </div>
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-file"></i> Name</label>
         <input type="text" id="node-input-name" placeholder="name">
@@ -182,7 +196,8 @@
         category: 'location',
         color:"darksalmon",
         defaults: {
-            name: {value:""}
+            name: {value:""},
+            path: {value:"/worldmap"}
         },
         inputs:0,
         outputs:1,
@@ -194,7 +209,7 @@
             return this.name?"node_label_italic":"";
         },
         info: function() {
-            return 'The map can be found [here]('+RED.settings.httpNodeRoot.slice(0,-1)+'/worldmap).';
+            return 'The map can be found [here]('+RED.settings.httpNodeRoot.slice(0,-1)+this.path+').';
         }
     });
 </script>

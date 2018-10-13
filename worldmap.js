@@ -1,5 +1,5 @@
 /**
- * Copyright 2015, 2017 IBM Corp.
+ * Copyright 2015, 2018 IBM Corp.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,20 +19,12 @@ module.exports = function(RED) {
     var path = require("path");
     var express = require("express");
     var sockjs = require('sockjs');
-    var sockets = {}; // indexed by worldmap name
-    var socketCB = {}; // callbacks into worldmap-in nodes
+    var sockets = {};
+    // add the cgi module for serving local maps....
+    RED.httpNode.use("/cgi-bin/mapserv", require('cgi')(__dirname + '/mapserv'));
 
     var WorldMap = function(n) {
         RED.nodes.createNode(this,n);
-        var uri = n.nameuri && n.name ? "worldmaps/"+n.name : "worldmap";
-        if (!sockets[n.name]) {
-            var fullPath = path.posix.join(RED.settings.httpNodeRoot, uri, 'leaflet', 'sockjs.min.js');
-            this.log("Creating worldmap socket, name="+n.name+" nameuri="+n.nameuri+" uri="+uri+
-                " fullPath="+fullPath);
-            sockets[n.name] = sockjs.createServer({sockjs_url:fullPath, log:function() {}, transports:"xhr-polling"});
-            sockets[n.name].installHandlers(RED.server, {prefix:path.posix.join(RED.settings.httpNodeRoot,'/'+uri+'/socket')});
-            if (socketCB[n.name]) socketCB[n.name]();
-        }
         this.lat = n.lat || "";
         this.lon = n.lon || "";
         this.zoom = n.zoom || "";
@@ -42,15 +34,16 @@ module.exports = function(RED) {
         this.showmenu = n.usermenu || "show";
         this.panit = n.panit || "false";
         this.layers = n.layers || "show";
-        this.name = n.name;
-        this.nameuri = !!n.nameuri;
+        this.path = n.path || "/worldmap";
+        if (!sockets[this.path]) {
+            var fullPath = path.posix.join(RED.settings.httpNodeRoot, this.path, 'leaflet', 'sockjs.min.js');
+            sockets[this.path] = sockjs.createServer({sockjs_url:fullPath, log:function() {}, transports:"xhr-polling"});
+            sockets[this.path].installHandlers(RED.server, {prefix:path.posix.join(RED.settings.httpNodeRoot,this.path,'socket')});
+        }
         var node = this;
         var clients = {};
-        //node.log("Serving map from "+__dirname+" as "+RED.settings.httpNodeRoot.slice(0,-1)+"/worldmap");
-        RED.httpNode.use("/"+uri, express.static(__dirname + '/worldmap'));
-        // add the cgi module for serving local maps....
-        // FIXME: should only do this the first time
-        RED.httpNode.use("/cgi-bin/mapserv", require('cgi')(__dirname + '/mapserv'));
+        //node.log("Serving map from "+__dirname+" as "+RED.settings.httpNodeRoot.slice(0,-1)+node;path);
+        RED.httpNode.use(node.path, express.static(__dirname + '/worldmap'));
 
         var callback = function(client) {
             //client.setMaxListeners(0);
@@ -98,17 +91,28 @@ module.exports = function(RED) {
                     clients[c].end();
                 }
             }
-            sockets[node.name].removeListener('connection', callback);
+            sockets[this.path].removeListener('connection', callback);
+            for (var i=0; i < RED.httpNode._router.stack.length; i++) {
+                var r = RED.httpNode._router.stack[i];
+                if ((r.name === "serveStatic") && (r.regexp.test(node.path))) {
+                    RED.httpNode._router.stack.splice(i, 1)
+                }
+            }
             node.status({});
         });
-        sockets[node.name].on('connection', callback);
+        sockets[this.path].on('connection', callback);
     }
     RED.nodes.registerType("worldmap",WorldMap);
 
 
     var WorldMapIn = function(n) {
         RED.nodes.createNode(this,n);
-
+        this.path = n.path || "/worldmap";
+        if (!sockets[this.path]) {
+            var fullPath = path.posix.join(RED.settings.httpNodeRoot, this.path, 'leaflet', 'sockjs.min.js');
+            sockets[this.path] = sockjs.createServer({sockjs_url:fullPath, prefix:path.posix.join(RED.settings.httpNodeRoot,this.path,'socket')});
+            sockets[this.path].installHandlers(RED.server);
+        }
         var node = this;
         var clients = {};
 
@@ -118,7 +122,7 @@ module.exports = function(RED) {
             node.status({fill:"green",shape:"dot",text:"connected "+Object.keys(clients).length});
             client.on('data', function(message) {
                 message = JSON.parse(message);
-                node.send({payload:message, topic:"worldmap", _sessionid:client.id});
+                node.send({payload:message, topic:node.path.substr(1), _sessionid:client.id});
             });
             client.on('close', function() {
                 delete clients[client.id];
@@ -127,29 +131,16 @@ module.exports = function(RED) {
             });
         }
 
-        // callback used if this node is instantiated before the corresponding worldmap node and
-        // thus the socket has not yet been created.
-        var socketConn = function() {
-            if (!sockets[n.name]) return; // should never happen
-            delete(socketCB, n.name);
-            sockets[n.name].on('connection', callback);
-        };
-        if (sockets[n.name]) {
-            sockets[n.name].on('connection', callback);
-        } else {
-            socketCB[n.name] = socketConn;
-        }
-
         node.on("close", function() {
             for (var c in clients) {
                 if (clients.hasOwnProperty(c)) {
                     clients[c].end();
                 }
             }
-            if (sockets[n.name]) sockets[n.name].removeListener('connection', callback);
-            if (socketsCB[n.name]) delete(socketCB, n.name);
+            sockets[this.path].removeListener('connection', callback);
             node.status({});
         });
+        sockets[this.path].on('connection', callback);
     }
     RED.nodes.registerType("worldmap in",WorldMapIn);
 

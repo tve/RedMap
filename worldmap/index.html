@@ -213,7 +213,15 @@ if ( window.localStorage.hasOwnProperty("maxage") ) {
 // Create the Initial Map object.
 map = new L.map('map').setView(startpos, startzoom);
 
-var menuButton = L.easyButton( 'fa-bars fa-lg', function() { toggleMenu(); }, "Toggle menu", "topright");
+var menuButton = L.easyButton({states:[{icon:'fa-bars fa-lg', onClick:function() { toggleMenu(); }, title:'Toggle menu'}], position:"topright"});
+//var colorPickButton = L.easyButton({states:[{icon:'fa-tint fa-lg', onClick:function() { console.log("PICK"); }, title:'Pick Colour'}]});
+var redButton = L.easyButton('fa-square wm-red', function(btn) { console.log("RED",btn); })
+var blueButton = L.easyButton('fa-square wm-blue', function(btn) { console.log("BLUE",btn); })
+var greenButton = L.easyButton('fa-square wm-green', function(btn) { console.log("GREEN",btn); })
+var yellowButton = L.easyButton('fa-square wm-yellow', function(btn) { console.log("YELLOW",btn); })
+var blackButton = L.easyButton('fa-square wm-black', function(btn) { console.log("BLACK",btn); })
+var colorControl = L.easyBar([redButton,blueButton,greenButton,yellowButton,blackButton]);
+
 
 // Move some bits around if in an iframe
 if (window.self !== window.top) {
@@ -264,6 +272,7 @@ if (!inIframe) {
     }, "Clears the current heatmap", "bottomright");
 }
 if (showUserMenu) { menuButton.addTo(map); } // Always, else TypeError: this._container is undefined at line 1219
+
 
 // Handle the dialog for popup help
 var dialog = document.querySelector('dialog');
@@ -327,11 +336,11 @@ function doTidyUp(l) {
                 }
                 delete markers[m];
             }
-            if (l) {
-                layercontrol.removeLayer(layers[l]);
-                delete overlays[l];
-            }
         }
+    }
+    if (l) {
+        if (layers[l]) { map.removeLayer(layers[l]); layercontrol.removeLayer(layers[l]); delete layers[l]; }
+        if (overlays[l]) { map.removeLayer(overlays[l]); layercontrol.removeLayer(overlays[l]); delete overlays[l]; }
     }
 }
 
@@ -439,8 +448,11 @@ map.on('overlayadd', function(e) {
         layers["_daynight"].addLayer(L.terminator());
     }
     if (e.name == "drawing") {
-        map.addControl(drawControl);
         overlays["drawing"].bringToFront();
+        // And the actual draw controls
+        map.addControl(drawControl);
+        // Add the color change button
+        //colorControl.addTo(map);
     }
     ws.send(JSON.stringify({action:"addlayer", name:e.name}));
 });
@@ -455,6 +467,7 @@ map.on('overlayremove', function(e) {
         layers["_daynight"].clearLayers();
     }
     if (e.name == "drawing") {
+        map.removeControl(colorControl);
         map.removeControl(drawControl);
     }
     //else console.log("layer del :",e.name);
@@ -629,7 +642,6 @@ var NLS_OS_opendata = L.tileLayer('https://geo.nls.uk/maps/opendata/{z}/{x}/{y}.
 });
 basemaps["UK OS Opendata"] = NLS_OS_opendata;
 
-
 var HikeBike_HikeBike = L.tileLayer('http://{s}.tiles.wmflabs.org/hikebike/{z}/{x}/{y}.png', {
 	maxZoom: 19,
 	attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -665,7 +677,13 @@ basemaps["UK OS 1900"] = NLS_OS_1900;
 // Nice watercolour based maps by Stamen Design
 //basemaps["Watercolor"] = new L.StamenTileLayer('watercolor');
 
+
 // Now add the overlays
+
+// Add the countries (world-110m) for offline use
+var customTopoLayer = L.geoJson(null, {style: {color:"blue", weight:2, fillColor:"#cf6", fillOpacity:0.04}});
+layers["_countries"] = omnivore.topojson('images/world-50m-flat.json',null,customTopoLayer);
+overlays["countries"] = layers["_countries"];
 
 // Add the day/night overlay
 //layers["_daynight"] = new L.LayerGroup();
@@ -807,7 +825,9 @@ function setMarker(data) {
             //zoomToBoundsOnClick:false
         });
         overlays[lay] = layers[lay];
-        layercontrol.addOverlay(layers[lay],lay);
+        if (showLayerMenu !== false) {
+            layercontrol.addOverlay(layers[lay],lay);
+        }
         map.addLayer(overlays[lay]);
         //console.log("ADDED LAYER",lay,layers);
     }
@@ -1056,9 +1076,11 @@ function setMarker(data) {
         }
         else if (data.icon && (data.icon.substr(0,3) === "fa-")) {
             var col = data.iconColor || "#910000";
+            var imod = "";
+            if (data.icon.indexOf(" ") === -1) { imod = "fa-2x "; }
             myMarker = L.divIcon({
                 className:"faicon",
-                html: '<center><i class="fa fa-fw fa-2x '+data.icon+'" style="color:'+col+'"></i></center>',
+                html: '<center><i class="fa fa-fw '+imod+data.icon+'" style="color:'+col+'"></i></center>',
                 iconSize: [30, 30]
             });
             marker = L.marker(ll, {title:data.name, icon:myMarker, draggable:drag});
