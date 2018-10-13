@@ -707,6 +707,7 @@ map.on('draw:created', function (e) {
 //overlays["buildings"] = new OSMBuildings(map).load();
 //map.removeLayer(overlays["buildings"]);     // Hide it at start
 
+/* TvE hack
 // Add Roads
 overlays["roads"] = L.tileLayer('https://{s}.tile.openstreetmap.se/hydda/roads_and_labels/{z}/{x}/{y}.png', {
 	maxZoom: 18,
@@ -731,6 +732,7 @@ overlays["ship nav"] = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}
     maxZoom: 19,
     attribution: 'Map data: &copy; <a href="https://www.openseamap.org">OpenSeaMap</a> contributors'
 });
+*/
 
 if ( window.localStorage.hasOwnProperty("lastlayer") ) {
     if ( basemaps[window.localStorage.getItem("lastlayer")] ) {
@@ -768,7 +770,7 @@ var delMarker = function(dname) {
 
 // the MAIN add something to map function
 function setMarker(data) {
-    //console.log("DATA",typeof data, data);
+    console.log("DATA",typeof data, data);
     var ll;
     var lli = null;
     var stay = popped;
@@ -1202,7 +1204,7 @@ function setMarker(data) {
 }
 
 function doCommand(cmd) {
-    // console.log("COMMAND",cmd);
+    console.log("COMMAND",cmd);
     // ignore server side initial command if client position already saved.
     // if (cmd.hasOwnProperty("init") && initialposition) {
     //     return;
